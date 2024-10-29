@@ -1,24 +1,53 @@
 #!/bin/bash
 
-#!/bin/bash
+# Exit immediately if a command exits with a non-zero status
+set -e
 
 # Env Vars
 POSTGRES_USER="myuser"
 POSTGRES_PASSWORD=$(openssl rand -base64 12) # Generate a random 12-character password
 POSTGRES_DB="mydatabase"
 POSTGRES_DB_DEVELOPMENT="mydevdatabase"
-SECRET_KEY="my-secret"          # for the demo app
-NEXT_PUBLIC_SAFE_KEY="safe-key" # for the demo app
-DOMAIN_NAME="nextselfhost.dev"  # replace with your own
-EMAIL="your-email@example.com"  # replace with your own
+DOMAIN_NAME="nextselfhost.dev" # Replace with your own
+EMAIL="your-email@example.com" # Replace with your own
+NEW_USER="userName"            # Replace with your desired username
+SWAP_SIZE="1G"                 # Swap size of 1GB
+
+# **Add your own public SSH key here**
+USER_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..." # Replace with your actual public key
 
 # Script Vars
 REPO_URL="git@github.com:Kai-Animator/next-self-host.git"
-APP_DIR=~/myApp
-SWAP_SIZE="1G" # Swap size of 1GB
+APP_DIR="/home/$NEW_USER/myApp" # Changed to new user's home directory
 
 # Update package list and upgrade existing packages
 sudo apt update && sudo apt upgrade -y
+
+# 1.1 Create User and Password (User creation and setup)
+echo "Creating new user and setting up SSH..."
+sudo adduser $NEW_USER --disabled-password --gecos ""
+USER_PASSWORD=$(openssl rand -base64 12)
+echo "$NEW_USER:$USER_PASSWORD" | sudo chpasswd
+sudo usermod -aG sudo $NEW_USER
+sudo usermod -aG docker $NEW_USER
+
+# Setup passwordless sudo for Docker and Docker Compose only
+echo "$NEW_USER ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/local/bin/docker-compose, /usr/bin/systemctl" | sudo tee /etc/sudoers.d/$NEW_USER
+
+# Setup SSH directory and keys for the new user
+sudo mkdir -p /home/$NEW_USER/.ssh
+sudo chmod 700 /home/$NEW_USER/.ssh
+
+# **Add your own SSH public key to authorized_keys**
+echo "$USER_PUBLIC_KEY" | sudo tee -a /home/$NEW_USER/.ssh/authorized_keys
+
+# Generate SSH key pair for GitHub Actions
+echo "Generating SSH key pair for GitHub Actions..."
+sudo -u $NEW_USER ssh-keygen -t rsa -b 4096 -f /home/$NEW_USER/.ssh/id_rsa_github_actions -N ""
+
+# Ensure correct permissions
+sudo chmod 600 /home/$NEW_USER/.ssh/authorized_keys
+sudo chown -R $NEW_USER:$NEW_USER /home/$NEW_USER/.ssh
 
 # Add Swap Space
 echo "Adding swap space..."
@@ -31,15 +60,15 @@ sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 # Install Docker
-sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" -y
 sudo apt update
-sudo apt install docker-ce -y
+sudo apt install -y docker-ce
 
 # Install Docker Compose
 sudo rm -f /usr/local/bin/docker-compose
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-$(uname -m)" -o /usr/local/bin/docker-compose
 
 # Wait for the file to be fully downloaded before proceeding
 if [ ! -f /usr/local/bin/docker-compose ]; then
@@ -63,15 +92,18 @@ fi
 sudo systemctl enable docker
 sudo systemctl start docker
 
-# Clone the Git repository
-if [ -d "$APP_DIR" ]; then
-  echo "Directory $APP_DIR already exists. Pulling latest changes..."
-  cd $APP_DIR && git pull
+# Clone the Git repository into the new user's home directory
+echo "Cloning or updating the repository..."
+sudo -u $NEW_USER bash -c "
+if [ -d '$APP_DIR' ]; then
+  echo 'Directory $APP_DIR already exists. Pulling latest changes...'
+  cd '$APP_DIR' && git pull
 else
-  echo "Cloning repository from $REPO_URL..."
-  git clone $REPO_URL $APP_DIR
-  cd $APP_DIR || exit 1
+  echo 'Cloning repository from $REPO_URL...'
+  git clone $REPO_URL '$APP_DIR'
+  cd '$APP_DIR' || exit 1
 fi
+"
 
 # For Docker internal communication ("db" is the name of Postgres container)
 DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB"
@@ -81,22 +113,24 @@ DEVELOPMENT_DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db-develo
 DATABASE_URL_EXTERNAL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB"
 DEVELOPMENT_DATABASE_URL_EXTERNAL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5433/$POSTGRES_DB_DEVELOPMENT"
 
-# Create the .env file inside the app directory (~/myapp/.env)
-echo "POSTGRES_USER=$POSTGRES_USER" >"$APP_DIR/.env"
-echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >>"$APP_DIR/.env"
-echo "POSTGRES_DB=$POSTGRES_DB" >>"$APP_DIR/.env"
-echo "POSTGRES_DB_DEVELOPMENT=$POSTGRES_DB_DEVELOPMENT" >>"$APP_DIR/.env"
-echo "DATABASE_URL=$DATABASE_URL" >>"$APP_DIR/.env"
-echo "DATABASE_URL_EXTERNAL=$DATABASE_URL_EXTERNAL" >>"$APP_DIR/.env"
-echo "DEVELOPMENT_DATABASE_URL=$DEVELOPMENT_DATABASE_URL" >>"$APP_DIR/.env"
-echo "DEVELOPMENT_DATABASE_URL_EXTERNAL=$DEVELOPMENT_DATABASE_URL_EXTERNAL" >>"$APP_DIR/.env"
+# Create the .env file inside the app directory
+sudo -u $NEW_USER bash -c "
+echo 'POSTGRES_USER=$POSTGRES_USER' > '$APP_DIR/.env'
+echo 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD' >> '$APP_DIR/.env'
+echo 'POSTGRES_DB=$POSTGRES_DB' >> '$APP_DIR/.env'
+echo 'POSTGRES_DB_DEVELOPMENT=$POSTGRES_DB_DEVELOPMENT' >> '$APP_DIR/.env'
+echo 'DATABASE_URL=$DATABASE_URL' >> '$APP_DIR/.env'
+echo 'DATABASE_URL_EXTERNAL=$DATABASE_URL_EXTERNAL' >> '$APP_DIR/.env'
+echo 'DEVELOPMENT_DATABASE_URL=$DEVELOPMENT_DATABASE_URL' >> '$APP_DIR/.env'
+echo 'DEVELOPMENT_DATABASE_URL_EXTERNAL=$DEVELOPMENT_DATABASE_URL_EXTERNAL' >> '$APP_DIR/.env'
+"
 
-# Install Caddy instead of Nginx, added fail2ban
+# Install Caddy and Fail2Ban
 sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo apt-key add -
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee -a /etc/apt/sources.list.d/caddy-stable.list
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
 sudo apt update
-sudo apt install caddy fail2ban -y
+sudo apt install -y caddy fail2ban
 
 # Remove old Caddy config (if it exists)
 sudo rm -f /etc/caddy/Caddyfile
@@ -125,12 +159,11 @@ EOL
 # Restart Caddy to apply the new configuration
 sudo systemctl restart caddy
 
-# Output final message
-echo "Caddy has been installed and configured. SSL is set up using Let's Encrypt, and the Next.js app is being proxied through Caddy."
-
-# Build and run the Docker containers from the app directory (~/myapp)
-cd $APP_DIR || exit 1
+# Build and run the Docker containers from the app directory
+sudo -u $NEW_USER bash -c "
+cd '$APP_DIR' || exit 1
 sudo docker-compose up --build -d
+"
 
 # Check if Docker Compose started correctly
 if ! sudo docker-compose ps | grep "Up"; then
@@ -138,15 +171,35 @@ if ! sudo docker-compose ps | grep "Up"; then
   exit 1
 fi
 
-# Output final message
-echo "Deployment complete. Your Next.js app and PostgreSQL database are now running. 
-Next.js is available at https://$DOMAIN_NAME, and the PostgreSQL database is accessible from the web service.
+# Output final message and necessary secrets
+echo "Deployment complete.
 
-The .env file has been created with the following values:
-- POSTGRES_USER
-- POSTGRES_PASSWORD (randomly generated)
-- POSTGRES_DB
-- DATABASE_URL
-- DATABASE_URL_EXTERNAL
-- SECRET_KEY
-- NEXT_PUBLIC_SAFE_KEY"
+Your Next.js app and PostgreSQL database are now running.
+- Next.js is available at https://$DOMAIN_NAME
+- Testing environment is available at https://test.$DOMAIN_NAME
+- PostgreSQL database is accessible from the web service.
+
+The .env file has been created with the necessary environment variables.
+
+---
+
+**Important:**
+
+To enable GitHub Actions to SSH into your server for automated deployments, you need to add the following SSH private key to your GitHub repository secrets as 'SSH_PRIVATE_KEY':
+
+---
+
+"
+sudo cat /home/$NEW_USER/.ssh/id_rsa_github_actions
+echo "
+
+---
+
+**Note:** Keep this private key secure. Do not share it publicly.
+
+You should also add the following to your GitHub repository secrets:
+- SERVER_USER: $NEW_USER
+- SERVER_HOST: [Your server's IP or hostname]
+- APP_DIR: $APP_DIR
+
+"
