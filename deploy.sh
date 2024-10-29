@@ -316,12 +316,12 @@ echo "Caddy restarted."
 echo "Building and running Docker containers..."
 sudo -u "$NEW_USER" bash -c "
     cd '$APP_DIR' || exit 1
-    docker-compose -f docker-compose.yml up --build -d
+    docker-compose -f $APP_DIR/docker-compose.yml up --build -d
 "
 
 # Check if Docker Compose started correctly
 echo "Verifying Docker containers are running..."
-if docker-compose -f docker-compose.yml ps | grep -q "Up"; then
+if docker-compose -f $APP_DIR/docker-compose.yml ps | grep -q "Up"; then
   echo "Docker containers are up and running."
 else
   echo "Docker containers failed to start. Check logs with 'docker-compose logs'."
