@@ -15,15 +15,11 @@ NEW_USER="userName"            # Replace with your desired username
 SWAP_SIZE="1G"                 # Swap size of 1GB
 
 # **Add your own public SSH key here**
-USER_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCWFvVPZM4Np1QmxNv+dOUaN/J83tOU/VkOno/zODbjin9o62zonn1uhBG1Jmfv8EaJBE"
+USER_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCWFvVPZM4Np1QmxNv..."
 
 # Script Vars
 REPO_URL="git@github.com:Kai-Animator/next-self-host.git"
 APP_DIR="/home/$NEW_USER/myApp" # Changed to new user's home directory
-
-# Script Vars
-REPO_URL="git@github.com:Kai-Animator/next-self-host.git"
-APP_DIR="/home/$NEW_USER/ldj-website"
 
 # Function to check if a user exists
 user_exists() {
