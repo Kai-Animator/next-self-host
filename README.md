@@ -54,10 +54,10 @@ CREATE TABLE IF NOT EXISTS "todos" (
 If you want to run this setup locally using Docker, you can follow these steps:
 
 ```bash
-docker-compose -f docker-compose.yml up -d
+docker-compose -f docker-compose.development.yml up -d
 ```
 
-This will start both services and make your Next.js app available at `http://localhost:3000` with the PostgreSQL database running in the background. We also create a network so that our two containers can communicate with each other.
+This will start both services and make your Next.js app available at `http://localhost:3001` with the PostgreSQL database running in the background. We also create a network so that our two containers can communicate with each other.
 
 If you want to view the contents of the local database, you can use Drizzle Studio:
 
@@ -75,15 +75,6 @@ bun run db:studio
 - `sudo systemctl restart nginx` - restart nginx
 - `docker exec -it myapp-web-1 sh` - enter Next.js Docker container
 - `docker exec -it myapp-db-1 psql -U myuser -d mydatabase` - enter Postgres db
-
-## Other Resources
-
-- [Kubernetes Example](https://github.com/ezeparziale/nextjs-k8s)
-- [Redis Cache Adapter for Next.js](https://github.com/vercel/next.js/tree/canary/examples/cache-handler-redis)
-- [ipx – Image optimization library](https://github.com/unjs/ipx)
-- [OrbStack - Fast Docker desktop client](https://orbstack.dev/)
-
----
 
 ## Personal Changes
 
