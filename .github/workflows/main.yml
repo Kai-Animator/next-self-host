@@ -1,0 +1,86 @@
+name: Deploy via SSH
+
+on:
+  push:
+    branches:
+      - main # Production branch
+      - development # Testing branch
+
+jobs:
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install SSH and add SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: SSH into server and deploy production
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            APP_DIR=${{ secrets.APP_DIR }}
+
+            if [ -d "$APP_DIR" ]; then
+              echo "Pulling latest changes..."
+              cd "$APP_DIR"
+              git pull origin main
+            else
+              echo "Directory not found!"
+              exit 1
+            fi
+
+            echo "Rebuilding Production Docker containers..."
+            sudo docker-compose down
+            sudo docker-compose up --build -d web db cron
+
+            if ! sudo docker-compose ps | grep "Up"; then
+              echo "Docker containers failed to start."
+              exit 1
+            fi
+
+            echo "Production deployment completed"
+          EOF
+
+  deploy-test:
+    if: github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install SSH and add SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: SSH into server and deploy testing
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            APP_DIR=${{ secrets.APP_DIR }}
+
+            if [ -d "$APP_DIR" ]; then
+              echo "Pulling latest changes..."
+              cd "$APP_DIR"
+              git pull origin development
+            else
+              echo "Directory not found!"
+              exit 1
+            fi
+
+            echo "Rebuilding Testing Docker containers..."
+            sudo docker-compose down
+            sudo docker-compose up --build -d web-test db-test cron-test
+
+            if ! sudo docker-compose ps | grep "web-test"; then
+              echo "Testing Docker containers failed to start."
+              exit 1
+            fi
+
+            echo "Testing deployment completed"
+          EOF

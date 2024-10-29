@@ -119,3 +119,11 @@ bun run db:studio
 - [Redis Cache Adapter for Next.js](https://github.com/vercel/next.js/tree/canary/examples/cache-handler-redis)
 - [ipx – Image optimization library](https://github.com/unjs/ipx)
 - [OrbStack - Fast Docker desktop client](https://orbstack.dev/)
+
+---
+
+## Personal Changes
+
+Replace Nginx for Caddy, added fail2ban
+Added Github Actions integrations
+Added zod, trpc and postcss, also updated next

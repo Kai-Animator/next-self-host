@@ -1,10 +1,20 @@
-import type { Config } from 'drizzle-kit';
+import type { Config } from "drizzle-kit";
+
+const url =
+  process.env.NODE_ENV === "development"
+    ? process.env.DEVELOPMENT_DATABASE_URL_EXTERNAL!
+    : process.env.DATABASE_URL_EXTERNAL!;
+
+const migrations =
+  process.env.NODE_ENV === "development"
+    ? "./src/db/migrations/dev/"
+    : "./src/db/migrations";
 
 export default {
-  schema: './app/db/schema.ts',
-  out: './app/db/migrations',
-  dialect: 'postgresql',
+  schema: "./src/db/schema.ts",
+  out: migrations,
+  dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL_EXTERNAL!,
+    url: url,
   },
 } satisfies Config;

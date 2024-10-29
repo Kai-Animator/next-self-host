@@ -1,18 +1,21 @@
 #!/bin/bash
 
+#!/bin/bash
+
 # Env Vars
 POSTGRES_USER="myuser"
-POSTGRES_PASSWORD=$(openssl rand -base64 12)  # Generate a random 12-character password
+POSTGRES_PASSWORD=$(openssl rand -base64 12) # Generate a random 12-character password
 POSTGRES_DB="mydatabase"
-SECRET_KEY="my-secret" # for the demo app
+POSTGRES_DB_DEVELOPMENT="mydevdatabase"
+SECRET_KEY="my-secret"          # for the demo app
 NEXT_PUBLIC_SAFE_KEY="safe-key" # for the demo app
-DOMAIN_NAME="nextselfhost.dev" # replace with your own
-EMAIL="your-email@example.com" # replace with your own
+DOMAIN_NAME="nextselfhost.dev"  # replace with your own
+EMAIL="your-email@example.com"  # replace with your own
 
 # Script Vars
-REPO_URL="https://github.com/leerob/next-self-host.git"
-APP_DIR=~/myapp
-SWAP_SIZE="1G"  # Swap size of 1GB
+REPO_URL="git@github.com:Kai-Animator/next-self-host.git"
+APP_DIR=~/myApp
+SWAP_SIZE="1G" # Swap size of 1GB
 
 # Update package list and upgrade existing packages
 sudo apt update && sudo apt upgrade -y
@@ -67,96 +70,66 @@ if [ -d "$APP_DIR" ]; then
 else
   echo "Cloning repository from $REPO_URL..."
   git clone $REPO_URL $APP_DIR
-  cd $APP_DIR
+  cd $APP_DIR || exit 1
 fi
 
 # For Docker internal communication ("db" is the name of Postgres container)
 DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB"
+DEVELOPMENT_DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db-development:5433/$POSTGRES_DB_DEVELOPMENT"
 
 # For external tools (like Drizzle Studio)
 DATABASE_URL_EXTERNAL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB"
+DEVELOPMENT_DATABASE_URL_EXTERNAL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5433/$POSTGRES_DB_DEVELOPMENT"
 
 # Create the .env file inside the app directory (~/myapp/.env)
-echo "POSTGRES_USER=$POSTGRES_USER" > "$APP_DIR/.env"
-echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> "$APP_DIR/.env"
-echo "POSTGRES_DB=$POSTGRES_DB" >> "$APP_DIR/.env"
-echo "DATABASE_URL=$DATABASE_URL" >> "$APP_DIR/.env"
-echo "DATABASE_URL_EXTERNAL=$DATABASE_URL_EXTERNAL" >> "$APP_DIR/.env"
+echo "POSTGRES_USER=$POSTGRES_USER" >"$APP_DIR/.env"
+echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >>"$APP_DIR/.env"
+echo "POSTGRES_DB=$POSTGRES_DB" >>"$APP_DIR/.env"
+echo "POSTGRES_DB_DEVELOPMENT=$POSTGRES_DB_DEVELOPMENT" >>"$APP_DIR/.env"
+echo "DATABASE_URL=$DATABASE_URL" >>"$APP_DIR/.env"
+echo "DATABASE_URL_EXTERNAL=$DATABASE_URL_EXTERNAL" >>"$APP_DIR/.env"
+echo "DEVELOPMENT_DATABASE_URL=$DEVELOPMENT_DATABASE_URL" >>"$APP_DIR/.env"
+echo "DEVELOPMENT_DATABASE_URL_EXTERNAL=$DEVELOPMENT_DATABASE_URL_EXTERNAL" >>"$APP_DIR/.env"
 
-# These are just for the demo of env vars
-echo "SECRET_KEY=$SECRET_KEY" >> "$APP_DIR/.env"
-echo "NEXT_PUBLIC_SAFE_KEY=$NEXT_PUBLIC_SAFE_KEY" >> "$APP_DIR/.env"
+# Install Caddy instead of Nginx, added fail2ban
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo apt-key add -
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee -a /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install caddy fail2ban -y
 
-# Install Nginx
-sudo apt install nginx -y
+# Remove old Caddy config (if it exists)
+sudo rm -f /etc/caddy/Caddyfile
 
-# Remove old Nginx config (if it exists)
-sudo rm -f /etc/nginx/sites-available/myapp
-sudo rm -f /etc/nginx/sites-enabled/myapp
-
-# Stop Nginx temporarily to allow Certbot to run in standalone mode
-sudo systemctl stop nginx
-
-# Obtain SSL certificate using Certbot standalone mode
-sudo apt install certbot -y
-sudo certbot certonly --standalone -d $DOMAIN_NAME --non-interactive --agree-tos -m $EMAIL
-
-# Ensure SSL files exist or generate them
-if [ ! -f /etc/letsencrypt/options-ssl-nginx.conf ]; then
-  sudo wget https://raw.githubusercontent.com/certbot/certbot/main/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -P /etc/letsencrypt/
-fi
-
-if [ ! -f /etc/letsencrypt/ssl-dhparams.pem ]; then
-  sudo openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
-fi
-
-# Create Nginx config with reverse proxy, SSL support, rate limiting, and streaming support
-sudo cat > /etc/nginx/sites-available/myapp <<EOL
-limit_req_zone \$binary_remote_addr zone=mylimit:10m rate=10r/s;
-
-server {
-    listen 80;
-    server_name $DOMAIN_NAME;
-
-    # Redirect all HTTP requests to HTTPS
-    return 301 https://\$host\$request_uri;
+# Create a new Caddyfile with SSL and reverse proxy configuration
+sudo tee /etc/caddy/Caddyfile >/dev/null <<EOL
+$DOMAIN_NAME, www.$DOMAIN_NAME {
+    reverse_proxy localhost:3000
+    tls $EMAIL
 }
 
-server {
-    listen 443 ssl;
-    server_name $DOMAIN_NAME;
+http://$DOMAIN_NAME, http://www.$DOMAIN_NAME {
+    redir https://$DOMAIN_NAME
+}
 
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+test.$DOMAIN_NAME {
+    reverse_proxy localhost:3001
+    tls $EMAIL
+}
 
-    # Enable rate limiting
-    limit_req zone=mylimit burst=20 nodelay;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-
-        # Disable buffering for streaming support
-        proxy_buffering off;
-        proxy_set_header X-Accel-Buffering no;
-    }
+http://test.$DOMAIN_NAME {
+    redir https://test.$DOMAIN_NAME
 }
 EOL
 
-# Create symbolic link if it doesn't already exist
-sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/myapp
+# Restart Caddy to apply the new configuration
+sudo systemctl restart caddy
 
-# Restart Nginx to apply the new configuration
-sudo systemctl restart nginx
+# Output final message
+echo "Caddy has been installed and configured. SSL is set up using Let's Encrypt, and the Next.js app is being proxied through Caddy."
 
 # Build and run the Docker containers from the app directory (~/myapp)
-cd $APP_DIR
+cd $APP_DIR || exit 1
 sudo docker-compose up --build -d
 
 # Check if Docker Compose started correctly
