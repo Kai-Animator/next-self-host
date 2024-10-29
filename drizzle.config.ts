@@ -7,11 +7,11 @@ const url =
 
 const migrations =
   process.env.NODE_ENV === "development"
-    ? "./src/db/migrations/dev/"
-    : "./src/db/migrations";
+    ? "./app/db/migrations/dev/"
+    : "./app/db/migrations";
 
 export default {
-  schema: "./src/db/schema.ts",
+  schema: "./app/db/schema.ts",
   out: migrations,
   dialect: "postgresql",
   dbCredentials: {
