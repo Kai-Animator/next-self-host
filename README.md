@@ -2,9 +2,7 @@
 
 This repo shows how to deploy a Next.js app and a PostgreSQL database on a Ubuntu Linux server using Docker and Nginx. It showcases using several features of Next.js like caching, ISR, environment variables, and more.
 
-[**📹 Watch the tutorial (45m)**](https://www.youtube.com/watch?v=sIVL4JMqRfc)
-
-[![Self Hosting Video Thumbnail](https://img.youtube.com/vi/sIVL4JMqRfc/0.jpg)](https://www.youtube.com/watch?v=sIVL4JMqRfc)
+[**🗄️ Original Project**](https://github.com/leerob/next-self-host/tree/main)
 
 ## Prerequisites
 
@@ -23,7 +21,7 @@ This repo shows how to deploy a Next.js app and a PostgreSQL database on a Ubunt
 2. **Download the deployment script**:
 
    ```bash
-   curl -o ~/deploy.sh https://raw.githubusercontent.com/leerob/next-self-host/main/deploy.sh
+   curl -o ~/deploy.sh https://raw.githubusercontent.com/Kai-Animator/next-self-host/refs/heads/main/deploy.sh
    ```
 
    You can then modify the email and domain name variables inside of the script to use your own.
@@ -35,40 +33,7 @@ This repo shows how to deploy a Next.js app and a PostgreSQL database on a Ubunt
    ./deploy.sh
    ```
 
-## Supported Features
-
-This demo tries to showcase many different Next.js features.
-
-- Image Optimization
-- Streaming
-- Talking to a Postgres database
-- Caching
-- Incremental Static Regeneration
-- Reading environment variables
-- Using Middleware
-- Running code on server startup
-- A cron that hits a Route Handler
-
-View the demo at https://nextselfhost.dev to see further explanations.
-
 ## Deploy Script
-
-I've included a Bash script which does the following:
-
-1. Installs all the necessary packages for your server
-1. Installs Docker, Docker Compose, and Nginx
-1. Clones this repository
-1. Generates an SSL certificate
-1. Builds your Next.js application from the Dockerfile
-1. Sets up Nginx and configures HTTPS and rate limting
-1. Sets up a cron which clears the database every 10m
-1. Creates a `.env` file with your Postgres database creds
-
-Once the deployment completes, your Next.js app will be available at:
-
-```
-http://your-provided-domain.com
-```
 
 Both the Next.js app and PostgreSQL database will be up and running in Docker containers. To set up your database, you could install `npm` inside your Postgres container and use the Drizzle scripts, or you can use `psql`:
 
@@ -84,14 +49,12 @@ CREATE TABLE IF NOT EXISTS "todos" (
 );'
 ```
 
-For pushing subsequent updates, I also provided an `update.sh` script as an example.
-
 ## Running Locally
 
 If you want to run this setup locally using Docker, you can follow these steps:
 
 ```bash
-docker-compose up -d
+docker-compose -f docker-compose.yml up -d
 ```
 
 This will start both services and make your Next.js app available at `http://localhost:3000` with the PostgreSQL database running in the background. We also create a network so that our two containers can communicate with each other.
