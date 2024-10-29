@@ -224,32 +224,40 @@ else
   sudo -u "$NEW_USER" git clone "$REPO_URL" "$APP_DIR"
 fi
 
+# Ensure the application directory is owned by the new user
+echo "Setting ownership of the application directory to '$NEW_USER'..."
+chown -R "$NEW_USER":"$NEW_USER" "$APP_DIR"
+echo "Ownership set."
+
 # Replace the repository origin with GH_REPO
 echo "Replacing the repository origin with $GH_REPO..."
 
-# Navigate to the application directory
-cd "$APP_DIR"
+sudo -u "$NEW_USER" bash -c "
+    cd '$APP_DIR' || exit 1
+    # Remove the existing .git directory to disassociate from the original repository
+    rm -rf .git
 
-# Remove the existing .git directory to disassociate from the original repository
-rm -rf .git
+    git config --global user.email $EMAIL
+    git config --global user.name $NEW_USER
 
-# Initialize a new Git repository
-git init
+    # Initialize a new Git repository
+    git init
 
-# Add all existing files to the new repository
-git add .
+    # Add all existing files to the new repository
+    git add .
 
-# Commit the current state
-git commit -m "Initial commit"
+    # Commit the current state
+    git commit -m 'Initial commit'
 
-# Create and switch to the main branch
-git branch -M main
+    # Create and switch to the main branch
+    git branch -M main
 
-# Add the new remote origin
-git remote add origin "$GH_REPO"
+    # Add the new remote origin
+    git remote add origin '$GH_REPO'
 
-# Push the initial commit to the new repository
-git push -u origin main
+    # Push the initial commit to the new repository
+    git push -u origin main
+"
 
 echo "Repository origin replaced with $GH_REPO and initial commit pushed."
 
