@@ -15,6 +15,7 @@ SWAP_SIZE="1G"                 # Swap size of 1GB
 
 # **Add your own public SSH key here**
 USER_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCWFvVPZM4Np1QmxNv..."
+GH_REPO="git@github.com:organization/reponame.git" # **New Variable: Replace with your new repository URL**
 
 # Script Vars
 REPO_URL="git@github.com:Kai-Animator/next-self-host.git"
@@ -222,6 +223,35 @@ else
   echo "Cloning repository from $REPO_URL..."
   sudo -u "$NEW_USER" git clone "$REPO_URL" "$APP_DIR"
 fi
+
+# Replace the repository origin with GH_REPO
+echo "Replacing the repository origin with $GH_REPO..."
+
+# Navigate to the application directory
+cd "$APP_DIR"
+
+# Remove the existing .git directory to disassociate from the original repository
+rm -rf .git
+
+# Initialize a new Git repository
+git init
+
+# Add all existing files to the new repository
+git add .
+
+# Commit the current state
+git commit -m "Initial commit"
+
+# Create and switch to the main branch
+git branch -M main
+
+# Add the new remote origin
+git remote add origin "$GH_REPO"
+
+# Push the initial commit to the new repository
+git push -u origin main
+
+echo "Repository origin replaced with $GH_REPO and initial commit pushed."
 
 # Define Database URLs
 DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB"
