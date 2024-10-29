@@ -18,33 +18,6 @@ This repo shows how to deploy a Next.js app and a PostgreSQL database on a Ubunt
    ssh root@your_server_ip
    ```
 
-1.1 Create User and Password
-
-```bash
-sudo adduser userName
-sudo usermod -aG sudo userName
-sudo usermod -aG docker userName
-
-# For GH Actions
-sudo visudo
-userName ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose
-
-sudo mkdir /home/userName/.ssh
-sudo chmod 700 /home/userName/.ssh
-echo 'your_ssh_public_key_here' | sudo tee /home/userName/.ssh/authorized_keys
-sudo chmod 600 /home/userName/.ssh/authorized_keys
-sudo chown -R userName:userName /home/userName/.ssh
-```
-
-1.2 SSH into User
-
-1.3 Lockdown machine for ssh connections without password
-
-```bash
-sudo vim /etc/ssh/sshd_config
-sudo systemctl restart sshd
-```
-
 2. **Download the deployment script**:
 
    ```bash
