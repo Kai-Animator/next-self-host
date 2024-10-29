@@ -2,6 +2,7 @@
 
 # Exit immediately if a command exits with a non-zero status
 set -e
+ssh -T git@github.com
 
 # Env Vars
 POSTGRES_USER="myuser"
@@ -206,8 +207,6 @@ echo "Starting SSH agent and adding repository SSH key..."
 eval "$(ssh-agent -s)"
 ssh-add "$REPO_SSH_PRIVATE_KEY"
 
-touch "/home/$NEW_USER/.ssh/config"
-
 sudo -u livredojogo bash -c "cat > /home/$NEW_USER/.ssh/config <<EOL
 Host github.com
     HostName github.com
@@ -239,7 +238,7 @@ DEVELOPMENT_DATABASE_URL_EXTERNAL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@
 
 # Create or update the .env file inside the app directory
 echo "Creating or updating the .env file..."
-cat >"/home/$NEW_USER/myApp/.env" <<EOL
+cat >"$APP_DIR/.env" <<EOL
 POSTGRES_USER=$POSTGRES_USER
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 POSTGRES_DB=$POSTGRES_DB
@@ -251,17 +250,27 @@ DEVELOPMENT_DATABASE_URL_EXTERNAL=$DEVELOPMENT_DATABASE_URL_EXTERNAL
 EOL
 
 # Ensure .env has correct ownership and permissions
-chown "$NEW_USER":"$NEW_USER" "/home/$NEW_USER/myApp/.env"
-chmod 600 "/home/$NEW_USER/myApp/.env"
+chown "$NEW_USER":"$NEW_USER" "$APP_DIR/.env"
+chmod 600 "$APP_DIR/.env"
 echo ".env file created or updated."
 
 # Install Caddy and Fail2Ban if not already installed
 echo "Installing Caddy and Fail2Ban..."
 if ! command -v caddy &>/dev/null; then
-  apt install -y debian-keyring debian-archive-keyring apt-transport-https
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | apt-key add -
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+  echo "Installing dependencies for Caddy..."
+  apt install -y debian-keyring debian-archive-keyring apt-transport-https ca-certificates curl software-properties-common
+
+  echo "Downloading and adding Caddy GPG key..."
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+
+  echo "Adding Caddy repository..."
+  echo "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" | tee /etc/apt/sources.list.d/caddy-stable.list
+  echo "deb-src [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" | tee -a /etc/apt/sources.list.d/caddy-stable.list
+
+  echo "Updating package lists..."
   apt update
+
+  echo "Installing Caddy and Fail2Ban..."
   apt install -y caddy fail2ban
   echo "Caddy and Fail2Ban installed successfully."
 else
@@ -365,7 +374,6 @@ $(cat "/home/$NEW_USER/.ssh/id_rsa_github_actions")
 You should also add the following to your GitHub repository secrets:
 - \`SERVER_USER\`: \`$NEW_USER\`
 - \`SERVER_HOST\`: \`[Your server's IP or hostname]\`
-- \`APP_DIR\`: \`/home/$NEW_USER/myApp\`
-
+- \`APP_DIR\`: \ $APP_DIR
 ---
 EOL
