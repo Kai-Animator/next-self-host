@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main # Production branch
-      - development # Testing branch
+      - stage # Testing branch
 
 jobs:
   deploy-production:
@@ -47,8 +47,8 @@ jobs:
             echo "Production deployment completed"
           EOF
 
-  deploy-development:
-    if: github.ref == 'refs/heads/development'
+  deploy-stage:
+    if: github.ref == 'refs/heads/stage'
     runs-on: ubuntu-latest
 
     steps:
@@ -75,9 +75,9 @@ jobs:
             fi
 
             echo "Rebuilding Testing Docker containers..."
-            sudo docker-compose -f docker-compose.development.yml up --build -d web-development db-development
+            sudo docker-compose -f docker-compose.yml up --build -d web-stage db-stage
 
-            if sudo docker-compose -f docker-compose.development.yml ps | grep -q "web-development"; then
+            if sudo docker-compose -f docker-compose.yml ps | grep -q "web-stage"; then
               echo "Testing Docker containers are up and running."
             else
               echo "Testing Docker containers failed to start."

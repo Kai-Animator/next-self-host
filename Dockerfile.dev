@@ -1,0 +1,16 @@
+FROM oven/bun:alpine AS base
+
+# Stage 1: Install dependencies
+FROM base AS deps
+WORKDIR /app
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
+
+# Stage 3: Development server
+FROM base AS runner
+WORKDIR /app
+COPY . .
+ENV NODE_ENV=development
+
+EXPOSE 3000
+CMD ["bun", "run", "dev"]

@@ -9,7 +9,7 @@ if (!process.env.DATABASE_URL || !process.env.DEVELOPMENT_DATABASE_URL) {
 }
 
 let env: string =
-  process.env.NODE_ENV === "development"
+  process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development"
     ? process.env.DEVELOPMENT_DATABASE_URL
     : process.env.DATABASE_URL;
 
