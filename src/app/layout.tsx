@@ -1,8 +1,12 @@
+import "@/styles/globals.css";
+import { TRPCReactProvider } from "@/trpc/react";
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Next.js Self Hosted",
   description: "This is hosted on Ubuntu Linux with Caddy as a reverse proxy.",
+  icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
 export default function RootLayout({
@@ -13,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head></head>
-      <body>{children}</body>
+      <body>
+        <TRPCReactProvider>{children}</TRPCReactProvider>
+      </body>
     </html>
   );
 }
