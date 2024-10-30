@@ -9,6 +9,7 @@ This repo shows how to deploy a Next.js app and a PostgreSQL database on a Ubunt
 1. Purchase a domain name
 2. Purchase a Linux Ubuntu server (e.g. [droplet](https://www.digitalocean.com/products/droplets))
 3. Create an `A` DNS record pointing to your server IPv4 address
+4. New Github repository
 
 ## Quickstart
 
@@ -31,7 +32,16 @@ This repo shows how to deploy a Next.js app and a PostgreSQL database on a Ubunt
    ```bash
    chmod +x ~/deploy.sh
    ./deploy.sh
+
    ```
+
+4. During script copy generated SSH .pub key to your GH settings and press enter after addition
+
+5. Into your new repo, add the following secrets:
+   SERVER_USER
+   SERVER_HOST
+   SSH_PRIVATE_KEY
+   AAP_DIR
 
 ## Deploy Script
 
