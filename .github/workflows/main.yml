@@ -7,7 +7,7 @@ on:
       - development # Testing branch
 
 jobs:
-  deploy-prod:
+  deploy-production:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
@@ -35,11 +35,12 @@ jobs:
             fi
 
             echo "Rebuilding Production Docker containers..."
-            sudo docker-compose down
             sudo docker-compose -f docker-compose.yml up --build -d web db
 
-            if ! sudo docker-compose ps | grep "Up"; then
-              echo "Docker containers failed to start."
+            if sudo docker-compose -f docker-compose.yml ps | grep -q "web"; then
+              echo "Production Docker containers are up and running."
+            else
+              echo "Production Docker containers failed to start."
               exit 1
             fi
 
@@ -74,10 +75,11 @@ jobs:
             fi
 
             echo "Rebuilding Testing Docker containers..."
-            sudo docker-compose down
             sudo docker-compose -f docker-compose.development.yml up --build -d web-development db-development
 
-            if ! sudo docker-compose ps | grep "web-test"; then
+            if sudo docker-compose -f docker-compose.development.yml ps | grep -q "web-development"; then
+              echo "Testing Docker containers are up and running."
+            else
               echo "Testing Docker containers failed to start."
               exit 1
             fi

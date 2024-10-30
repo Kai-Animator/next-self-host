@@ -203,7 +203,7 @@ echo "Starting SSH agent and adding repository SSH key..."
 eval "$(ssh-agent -s)"
 ssh-add "$REPO_SSH_PRIVATE_KEY"
 
-sudo -u livredojogo bash -c "cat > /home/$NEW_USER/.ssh/config <<EOL
+sudo -u "$NEW_USER" bash -c "cat > /home/$NEW_USER/.ssh/config <<EOL
 Host github.com
     HostName github.com
     User git
@@ -354,17 +354,19 @@ echo "Caddy restarted."
 echo "Building and running Docker containers..."
 sudo -u "$NEW_USER" bash -c "
     cd '$APP_DIR' || exit 1
-    docker-compose -f $APP_DIR/docker-compose.yml up --build -d
+    docker-compose -f docker-compose.yml -f docker-compose.development.yml up --build -d
 "
 
-# Check if Docker Compose started correctly
+# Check if Docker Compose started correctly as NEW_USER
 echo "Verifying Docker containers are running..."
-if docker-compose -f $APP_DIR/docker-compose.yml ps | grep -q "Up"; then
-  echo "Docker containers are up and running."
-else
-  echo "Docker containers failed to start. Check logs with 'docker-compose logs'."
-  exit 1
-fi
+sudo -u "$NEW_USER" bash -c "
+    if docker-compose -f docker-compose.yml -f docker-compose.development.yml ps | grep -q 'Up'; then
+        echo 'Docker containers are up and running.'
+    else
+        echo 'Docker containers failed to start. Check logs with \"docker-compose logs\".'
+        exit 1
+    fi
+"
 
 # Output final message and necessary secrets
 cat <<EOL
