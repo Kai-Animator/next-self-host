@@ -13,7 +13,7 @@ services:
     depends_on:
       - db
     networks:
-      - my_network
+      - network
 
   db:
     image: postgres:latest
@@ -26,7 +26,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - my_network
+      - network
 
   web-stage:
     build:
@@ -39,42 +39,58 @@ services:
     depends_on:
       - db-stage
     networks:
-      - my_network_stage
+      - network_stage
 
   db-stage:
     image: postgres:latest
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB_STAGE}
+      - POSTGRES_DB=${POSTGRES_DB_DEVELOPMENT}
     ports:
       - "5433:5432" # Use a different port
     volumes:
       - postgres_data_stage:/var/lib/postgresql/data
     networks:
-      - my_network_stage
+      - network_stage
 
   web-development:
     build:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000" # Use a different port
+      - "3002:3000" # Use a different port
     environment:
       - NODE_ENV=development
     volumes:
       - .:/app
     depends_on:
-      - db-stage
+      - db-dev
     networks:
-      - my_network_stage
+      - network_dev
+
+  db-dev:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB_DEVELOPMENT}
+    ports:
+      - "5434:5432" # Unique port for development
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - network_dev
 
 volumes:
   postgres_data:
   postgres_data_stage:
+  postgres_data_dev:
 
 networks:
-  my_network:
+  network:
     driver: bridge
-  my_network_stage:
+  network_stage:
+    driver: bridge
+  network_dev:
     driver: bridge

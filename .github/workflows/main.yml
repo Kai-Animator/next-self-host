@@ -68,7 +68,7 @@ jobs:
             if [ -d "$APP_DIR" ]; then
               echo "Pulling latest changes..."
               cd "$APP_DIR"
-              git pull origin development
+              git pull origin stage
             else
               echo "Directory not found!"
               exit 1
