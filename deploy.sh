@@ -360,6 +360,7 @@ sudo -u "$NEW_USER" bash -c "
 # Check if Docker Compose started correctly as NEW_USER
 echo "Verifying Docker containers are running..."
 sudo -u "$NEW_USER" bash -c "
+    cd '$APP_DIR' || exit 1
     if docker-compose -f docker-compose.yml -f docker-compose.development.yml ps | grep -q 'Up'; then
         echo 'Docker containers are up and running.'
     else
