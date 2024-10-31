@@ -52,7 +52,7 @@ services:
     networks:
       - network_stage
 
-  web-development:
+  web-dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
