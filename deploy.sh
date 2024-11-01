@@ -352,9 +352,11 @@ echo "Caddy restarted."
 
 # Installing bun
 echo "Installing bun"
+
+apt install unzip -y
+
 sudo -u "$NEW_USER" bash -c "
     cd '$APP_DIR' || exit 1
-    sudo apt install unzip -y
     curl -fsSL https://bun.sh/install | bash
 "
 
