@@ -11,10 +11,6 @@
   },
   "dependencies": {
     "@tanstack/react-query": "latest",
-    "@trpc/client": "next",
-    "@trpc/react-query": "next",
-    "@trpc/server": "next",
-    "client-only": "^0.0.1",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.24.2",
     "drizzle-orm": "^0.33.0",
@@ -22,8 +18,6 @@
     "postgres": "^3.4.4",
     "react": "19.0.0-rc-69d4b800-20241021",
     "react-dom": "19.0.0-rc-69d4b800-20241021",
-    "server-only": "^0.0.1",
-    "superjson": "^2.2.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

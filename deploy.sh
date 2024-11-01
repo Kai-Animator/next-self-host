@@ -350,6 +350,14 @@ echo "Restarting Caddy to apply the new configuration..."
 systemctl restart caddy
 echo "Caddy restarted."
 
+# Installing bun
+echo "Installing bun"
+sudo -u "$NEW_USER" bash -c "
+    cd '$APP_DIR' || exit 1
+    sudo apt install unzip -y
+    curl -fsSL https://bun.sh/install | bash
+"
+
 # Build and run the Docker containers from the app directory
 echo "Building and running Docker containers..."
 sudo -u "$NEW_USER" bash -c "

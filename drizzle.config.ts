@@ -1,4 +1,7 @@
 import type { Config } from "drizzle-kit";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const url =
   process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development"
@@ -7,11 +10,11 @@ const url =
 
 const migrations =
   process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development"
-    ? "./src/server/db/migrations/dev/"
-    : "./src/server/db/migrations";
+    ? "./src/db/migrations/dev/"
+    : "./src/db/migrations";
 
 export default {
-  schema: "./src/server/db/schema.ts",
+  schema: "./src/db/schema.ts",
   out: migrations,
   dialect: "postgresql",
   dbCredentials: {

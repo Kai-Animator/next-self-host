@@ -11,5 +11,5 @@ let env: string =
     ? process.env.DEVELOPMENT_DATABASE_URL
     : process.env.DATABASE_URL;
 
-const client = postgres(env);
+export const client = postgres(env);
 export const db = drizzle(client, { schema });

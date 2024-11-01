@@ -35,6 +35,7 @@ jobs:
             fi
 
             echo "Rebuilding Production Docker containers..."
+            sudo docker-compose down
             sudo docker-compose -f docker-compose.yml up --build -d web db
 
             if sudo docker-compose -f docker-compose.yml ps | grep -q "web"; then
@@ -43,6 +44,9 @@ jobs:
               echo "Production Docker containers failed to start."
               exit 1
             fi
+
+            echo "Running migrations if necessary..."
+            bun run drizzle-kit migrate
 
             echo "Production deployment completed"
           EOF
@@ -75,6 +79,7 @@ jobs:
             fi
 
             echo "Rebuilding Testing Docker containers..."
+            sudo docker-compose down
             sudo docker-compose -f docker-compose.yml up --build -d web-stage db-stage
 
             if sudo docker-compose -f docker-compose.yml ps | grep -q "web-stage"; then
@@ -83,6 +88,9 @@ jobs:
               echo "Testing Docker containers failed to start."
               exit 1
             fi
+
+            echo "Running migrations if necessary..."
+            NODE_ENV=test bun run drizzle-kit migrate
 
             echo "Testing deployment completed"
           EOF
